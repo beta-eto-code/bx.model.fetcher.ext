@@ -103,13 +103,14 @@ class KeyInfo
     public function loadValues(
         ModelCollection $targetCollection,
         iterable $linkedDataList,
-        string $linkedKey
+        string $linkedKey,
+        ?callable $modifyCallback = null
     ): void {
         foreach ($targetCollection as $model) {
             if ($this->isMultiple) {
-                $this->loadMultipleValueToModel($model, $linkedDataList, $linkedKey);
+                $this->loadMultipleValueToModel($model, $linkedDataList, $linkedKey, $modifyCallback);
             } else {
-                $this->loadSingleValueToModel($model, $linkedDataList, $linkedKey);
+                $this->loadSingleValueToModel($model, $linkedDataList, $linkedKey, $modifyCallback);
             }
         }
     }
@@ -117,7 +118,8 @@ class KeyInfo
     private function loadMultipleValueToModel(
         AbsOptimizedModel $model,
         iterable $linkedDataList,
-        string $linkedKey
+        string $linkedKey,
+        ?callable $modifyCallback = null
     ): void {
         $hasCompareCallback = !is_null($this->compareCallback) && is_callable($this->compareCallback);
         $originalKeyValue = (array) ($model[$this->foreignKey] ?? []);
@@ -137,7 +139,7 @@ class KeyInfo
                 in_array($linkedKeyValue, $originalKeyValue);
 
             if ($isValidItem) {
-                $filteredDataList[] = $linkedItem;
+                $filteredDataList[] = is_callable($modifyCallback) ? $modifyCallback($linkedItem) : $linkedItem;
             }
         }
 
@@ -176,7 +178,8 @@ class KeyInfo
     private function loadSingleValueToModel(
         AbsOptimizedModel $model,
         iterable $linkedDataList,
-        string $linkedKey
+        string $linkedKey,
+        ?callable $modifyCallback = null
     ): void {
         $hasValueSetterCallback = !is_null($this->valueSetterCallback) && is_callable($this->valueSetterCallback);
         $hasCompareCallback = !is_null($this->compareCallback) && is_callable($this->compareCallback);
@@ -200,6 +203,10 @@ class KeyInfo
                 if ($hasValueSetterCallback) {
                     ($this->valueSetterCallback)($model, $updatedItem);
                     break;
+                }
+
+                if (is_callable($modifyCallback)) {
+                    $linkedItem = $modifyCallback($linkedItem);
                 }
 
                 $model[$this->keyForSave] = $this->getUpdatedLinkedItem($linkedItem);

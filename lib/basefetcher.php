@@ -28,11 +28,12 @@ abstract class BaseFetcher implements FetcherModelInterface
     public function fill(ModelCollection $collection)
     {
         $linkedDataList = $this->getLinkedDataList($collection);
-        if (is_callable($this->modifyCallback)) {
-            $linkedDataList = $this->getModifyLinkedDataList($linkedDataList, $this->modifyCallback);
-        }
-
-        $this->keyInfo->loadValues($collection, $linkedDataList, $this->linkedModelKey);
+        $this->keyInfo->loadValues(
+            $collection,
+            $linkedDataList,
+            $this->linkedModelKey,
+            is_callable($this->modifyCallback) ? $this->modifyCallback : null
+        );
     }
 
     protected function getModifyLinkedDataList(iterable $linkedDataList, callable $modifyCallback): array
